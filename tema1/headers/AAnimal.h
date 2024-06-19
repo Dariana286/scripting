@@ -1,7 +1,7 @@
 #pragma once
 #include"IAnimal.h"
 
-class AAnimal:public IAnimal
+class AAnimal : public IAnimal
 {
 protected:
 	std::string name;

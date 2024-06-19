@@ -1,7 +1,7 @@
 #pragma once
 #include"AAnimal.h"
 
-class AAnimalDomestic :public AAnimal
+class AAnimalDomestic : public AAnimal
 {
 public:
 	AAnimalDomestic();

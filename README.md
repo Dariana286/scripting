@@ -8,3 +8,12 @@
 # Am urmat toti pasii de pe platforma Wiki pentru a putea incarca actualizarile pe GitHub.
 # Am testat daca totul merge bine prin incarcarea unui exemplu.
 # Dupa crearea automata a directorului "scripting", mi-am creat in interiorul acestuia un nou director pentru testare, numit "tema1", ce contine alte doua  directoare: "headers" si "sources". In "headers", am adaugat fisierele header (IAnimal.h, AAnimal.h, AAnimalDomestic.h, AAnimalSalbatic.h, Dog.h, Cat.h, Bear.h), iar in "sources", am implementat sursele fisierelor (AAnimal.cpp, AAnimalDomestic.cpp, AAnimalSalbatic.cpp, Dog.cpp, Cat.cpp, Bear.cpp). Aceasta organizare imi va permite sa verific functionalitatile si sa testez comportamentul viitoarelor adaugari si modificari în cadrul proiectului.
+
+# Ziua3: 19.06.2024
+# Am implementat urmatoarele functionalitati:
+# --am verificat daca programul compileaza si ruleaza
+# --in cazul erorilor, acestea sunt afisate pe ecran pentru a atentiona utilizatorul
+# --in cazul in care programul a fost compilat si rulat fara erori sau warning-rui, este afisat output-ul acestuia.
+# --am afisat clasele 
+# --am afisat o diagrama simplificata a claselor
+# --am afisat functiile implementate in fiecare clasa

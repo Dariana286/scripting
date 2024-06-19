@@ -1,0 +1,115 @@
+#!/bin/bash
+
+# VERIFICARE COMPILARE SI RULARE PROGRAM
+
+if [[ -z "$1" ]]
+then
+    echo "Eroare: Te rog specifica numele directorului temei."
+    echo "Utilizare: $0 <nume_director_tema>"
+    exit 1
+fi
+
+TEMA_DIR="$1"
+
+if [[ ! -d "$TEMA_DIR" ]]
+then
+    echo "Eroare: Directorul specificat '$TEMA_DIR' nu exista."
+    exit 1
+fi
+
+cd "$TEMA_DIR"
+
+echo " "
+echo " "
+
+# Compilare proiect
+g++ -o my_program sources/*.cpp -Iheaders 2> compile_errors.txt
+
+if [[ $? -ne 0 ]]
+then
+    echo "Eroare: Compilarea a esuat. Verifica erorile de mai jos:"
+    cat compile_errors.txt
+    exit 1
+fi
+
+# Rulare program
+./my_program > run_output.txt 2> run_errors.txt
+
+if [[ $? -ne 0 ]]
+then
+    echo "Eroare: Programul a intampinat erori in timpul rularii. Verifica erorile de mai jos:"
+    cat run_errors.txt
+    exit 1
+fi
+
+if [[ $(grep -i "warning" compile_errors.txt) ]]
+then
+    echo "Avertizare: Au existat warning-uri in timpul compilarii. Verifica warning-urile de mai jos:"
+    cat compile_errors.txt
+    exit 1
+fi
+
+echo "Succes: Programul a fost compilat si rulat fara erori sau warning-uri."
+cat run_output.txt
+
+rm compile_errors.txt run_output.txt run_errors.txt
+
+echo " "
+echo " "
+
+# AFISARE CLASE
+
+cd headers
+
+# Cautare clase in headers
+echo "Clasele definite in cadrul temei sunt:"
+for file in *.h
+do
+    echo "In fișierul: $file"
+    egrep "^class" $file | cut -f2 -d" "
+    echo "-----------------------"
+done
+
+echo " "
+echo " "
+
+# DIAGRAMA
+
+echo "Diagrama simplificata a claselor:"
+
+for file in *.h
+do
+    echo "Fișierul: $file"
+    line=`egrep "^class" $file`
+    class=`echo $line | cut -f2 -d" "`
+    inh=`echo $line | cut -f2- -d: | sed 's/^[[:space:]]*//'`
+    public=`echo $inh | cut -f1 -d" "`
+    result=`echo $inh | sed 's/.*public\s*//'`
+    echo "  Class: $class"
+        if [[ "$public" == "public" ]]
+        then
+            echo "    Inherits from: $result"
+        fi
+        
+    echo "-----------------------"
+done
+
+echo " "
+echo " "
+
+# FUNCTIILE DIN FIECARE CLASA
+
+echo "Functiile implementate in fiecare clasa:"
+for file in *.h
+do
+    echo "Fișierul: $file"
+    line=`egrep "^class" $file`
+    class=`echo $line | cut -f2 -d" "`
+    echo "  Class: $class"
+    
+    func=`cat $file | egrep ".+);$|override;$|0;$"`
+    
+    echo "$func"
+
+done
+
