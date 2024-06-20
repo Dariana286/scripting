@@ -17,3 +17,7 @@
 # --am afisat clasele 
 # --am afisat o diagrama simplificata a claselor
 # --am afisat functiile implementate in fiecare clasa
+
+# Ziua4: 20.06.2024
+# --am verificat daca in proiect exista interfete
+# --am verificat daca in proiect exista clase abstracte

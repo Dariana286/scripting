@@ -62,13 +62,17 @@ echo " "
 cd headers
 
 # Cautare clase in headers
+nr_cls=0
 echo "Clasele definite in cadrul temei sunt:"
 for file in *.h
 do
     echo "In fișierul: $file"
     egrep "^class" $file | cut -f2 -d" "
     echo "-----------------------"
+    let nr_cls=nr_cls+1
 done
+
+echo "Numarul total de clase:" $nr_cls
 
 echo " "
 echo " "
@@ -84,7 +88,7 @@ do
     class=`echo $line | cut -f2 -d" "`
     inh=`echo $line | cut -f2- -d: | sed 's/^[[:space:]]*//'`
     public=`echo $inh | cut -f1 -d" "`
-    result=`echo $inh | sed 's/.*public\s*//'`
+    result=`echo $inh | sed 's/public\s*//g'`
     echo "  Class: $class"
         if [[ "$public" == "public" ]]
         then
@@ -112,4 +116,77 @@ do
     echo "$func"
 
 done
+
+echo " "
+echo " "
+
+# INTERFETE
+
+echo "In cadrul programului exista urmatoarele interfete:"
+
+nr_int=0
+int_list=""
+for file in *.h
+do
+    class=`cat $file | egrep "^class" | cut -f2 -d" "`
+    total=`cat $file | egrep ".+;$" | head -n -1 | wc -l`
+    virtual=`cat $file | egrep ".+0;$" | wc -l`
+    let dif=total-virtual
+    if [[ $dif -eq 0 && $virtual -ne 0 ]]
+    then
+    	int_list+="$class "
+    	let nr_int=nr_int+1
+    fi
+done
+
+echo $int_list
+
+echo " "
+echo " "
+
+# CLASE ABSTRACTE
+
+echo "In cadrul programului exista urmatoarele clase abstracte:"
+
+for c in $int_list
+do
+virt_list=""
+    cc=${c}.h
+    while read line
+    do
+    	virtual=`echo $line | egrep ".+0;$"`
+    	if [[ ! -z $virtual ]]
+    	then
+            clean_line=$(echo "$virtual" | sed 's/virtual //' | sed 's/ = 0//')
+    	    virt_list+="$clean_line "
+    	fi
+    done < $cc
+    for file in *.h
+    do
+    	if [[ $file != $cc ]]
+    	then
+            ver=`cat $file | egrep "^class" | egrep "$c"`
+        if [[ ! -z $ver ]]
+        then
+            ok=0
+            for v in $virt_list
+            do
+                verr=`cat $file | egrep "$v"`
+                if [[ ! -z $verr ]]
+                then
+                    virt_list=$(echo "$virt_list" | sed 's/$v//g')
+                    ok=1
+                fi
+            done
+            if [[ $ok -eq 1 ]]
+            then 
+            	abs=$(echo $file | sed 's/\.h$//')
+            	abs_list+="$abs"
+            fi
+        fi
+        fi
+    done
+done
+
+echo $abs_list
 
