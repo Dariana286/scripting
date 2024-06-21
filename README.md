@@ -21,3 +21,8 @@
 # Ziua4: 20.06.2024
 # --am verificat daca in proiect exista interfete
 # --am verificat daca in proiect exista clase abstracte
+
+# Ziua5: 21.06.2024
+# --am verificat daca fiecare clasa contine constructori si destructori
+# --am transformat numarul constructorilor si destructorilor programului in procente
+# --am verificat superficial potentialele semne de plagiat

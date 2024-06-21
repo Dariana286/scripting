@@ -190,3 +190,112 @@ done
 
 echo $abs_list
 
+echo " "
+echo " "
+
+# CONSTRUCTORI SI DESTRUCTORI
+
+total_classes=0
+classes_with_constructors=0
+classes_with_destructors=0
+
+check_constructors_and_destructors() 
+{
+    local file=$1
+    local class_name=$2
+    constructor_found=$(egrep "($class_name\(|$class_name\s*\()" "$file")
+    destructor_found=$(egrep "(~$class_name\s*\()" "$file")
+
+    # Increment the total class counter
+    total_classes=$((total_classes + 1))
+
+    if [[ ! -z $constructor_found ]]
+    then
+        classes_with_constructors=$((classes_with_constructors + 1))
+    else
+        echo "Warning: Clasa $class_name din fisierul $file nu are constructori."
+    fi
+
+    if [[ ! -z $destructor_found ]]
+    then
+        classes_with_destructors=$((classes_with_destructors + 1))
+    else
+        echo "Warning: Clasa $class_name din fisierul $file nu are destructori."
+    fi
+}
+
+for header in *.h
+do
+    echo "Verificare fisier $header"
+
+    class_names=$(cat $header | egrep "^class" | cut -f2 -d" ")
+
+    for class in $class_names; do
+        check_constructors_and_destructors "$header" "$class"
+    done
+
+    echo ""
+done
+
+if [[ $total_classes -gt 0 ]]
+then
+    constructor_percentage=$(echo "scale=2; ($classes_with_constructors / $total_classes) * 100" | bc)
+    destructor_percentage=$(echo "scale=2; ($classes_with_destructors / $total_classes) * 100" | bc)
+
+    echo "Numarul total de clase: $total_classes"
+    echo "Clase care contin constructori: $classes_with_constructors ($constructor_percentage%)"
+    echo "Clase care contin destructori: $classes_with_destructors ($destructor_percentage%)"
+fi
+
+echo " "
+echo " "
+
+# PLAGIAT
+
+cd ../sources
+
+for s1 in *.cpp
+do
+for s2 in *.cpp
+do
+
+file1=$s1
+file2=$s2
+
+if [[ $file1 != $file2 ]]
+then
+
+if [[ ! -f "$file1" ]]
+then
+    echo "Fișierul $file1 nu există."
+    exit 1
+fi
+
+if [[ ! -f "$file2" ]]
+then
+    echo "Fișierul $file2 nu există."
+    exit 1
+fi
+
+result=$(diff -q "$file1" "$file2")
+found=0
+
+if [[ -z "$result" ]]
+then
+    found=1
+    break
+fi
+
+fi
+done
+done
+
+if [[ $found -eq 1 ]]
+then
+echo "Există posibilitatea de plagiat."
+else
+echo "Probabil nu există plagiat."
+fi
+
+echo " "
+echo " "
