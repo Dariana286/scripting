@@ -26,3 +26,8 @@
 # --am verificat daca fiecare clasa contine constructori si destructori
 # --am transformat numarul constructorilor si destructorilor programului in procente
 # --am verificat superficial potentialele semne de plagiat
+
+# Ziua6: 25.06.2024
+# --am verificat mostenirile si lanturile de derivare
+# --am verificat incapsularea
+# --am verificat existenta move constructorilor

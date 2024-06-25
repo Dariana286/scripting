@@ -1,5 +1,7 @@
 #!/bin/bash
 
+NOTA=0
+
 # VERIFICARE COMPILARE SI RULARE PROGRAM
 
 if [[ -z "$1" ]]
@@ -29,6 +31,9 @@ if [[ $? -ne 0 ]]
 then
     echo "Eroare: Compilarea a esuat. Verifica erorile de mai jos:"
     cat compile_errors.txt
+    NOTA=0
+    echo "NOTA"
+    echo "ATENTIE!! Tema ta nu se poate verifica deoarece are erori de compilare."
     exit 1
 fi
 
@@ -51,6 +56,7 @@ fi
 
 echo "Succes: Programul a fost compilat si rulat fara erori sau warning-uri."
 cat run_output.txt
+let NOTA=NOTA+2
 
 rm compile_errors.txt run_output.txt run_errors.txt
 
@@ -141,6 +147,16 @@ done
 
 echo $int_list
 
+if [[ $nr_int -ne 0 ]]
+then
+let NOTA=NOTA+1
+else
+NOTA=0
+    echo "NOTA"
+    echo "ATENTIE!! Tema ta nu se poate verifica deoarece nu contine interfete."
+    exit 1
+fi
+
 echo " "
 echo " "
 
@@ -148,6 +164,7 @@ echo " "
 
 echo "In cadrul programului exista urmatoarele clase abstracte:"
 
+nr_abs=0
 for c in $int_list
 do
 virt_list=""
@@ -182,6 +199,7 @@ virt_list=""
             then 
             	abs=$(echo $file | sed 's/\.h$//')
             	abs_list+="$abs"
+            	let nr_abs=nr_abs+1
             fi
         fi
         fi
@@ -189,6 +207,11 @@ virt_list=""
 done
 
 echo $abs_list
+
+if [[ $nr_int -ne 0 ]]
+then
+let NOTA=NOTA+1
+fi
 
 echo " "
 echo " "
@@ -230,7 +253,8 @@ do
 
     class_names=$(cat $header | egrep "^class" | cut -f2 -d" ")
 
-    for class in $class_names; do
+    for class in $class_names
+    do
         check_constructors_and_destructors "$header" "$class"
     done
 
@@ -245,6 +269,16 @@ then
     echo "Numarul total de clase: $total_classes"
     echo "Clase care contin constructori: $classes_with_constructors ($constructor_percentage%)"
     echo "Clase care contin destructori: $classes_with_destructors ($destructor_percentage%)"
+fi
+
+if [[ $(echo "$constructor_percentage > 50.00" | bc) -eq 1 ]]
+then
+    let NOTA=NOTA+1
+fi
+
+if [[ $(echo "$destructor_percentage > 50.00" | bc) -eq 1 ]]
+then
+    let NOTA=NOTA+1
 fi
 
 echo " "
@@ -295,7 +329,255 @@ then
 echo "Există posibilitatea de plagiat."
 else
 echo "Probabil nu există plagiat."
+let NOTA=NOTA+1
 fi
+
+echo " "
+echo " "
+
+
+# MOSTENIRI SI LANTURI DE DERIVARE
+
+cd ../headers
+
+
+extract_inheritance() 
+{
+    local file="$1"
+    local class_name=""
+    local base_class=""
+
+    while IFS= read -r line
+    do
+        if [[ $line =~ ^class[[:space:]]+([[:alnum:]]+)[[:space:]]*(:[[:space:]]*public[[:space:]]+([[:alnum:]]+))? ]]
+        then
+            class_name="${BASH_REMATCH[1]}"
+            base_class="${BASH_REMATCH[3]}"
+
+            if [[ -n $base_class ]] 
+            then
+                echo "$class_name -> $base_class"
+            fi
+        fi
+    done < "$file"
+}
+
+declare -a inheritance_list
+has_inheritance=0
+
+for header_file in *.h
+do
+    result=$(extract_inheritance "$header_file")
+    if [[ -n $result ]]; then
+        inheritance_list+=("$result")
+        has_inheritance=1
+    fi
+done
+
+print_inheritance_chain() 
+{
+    local class="$1"
+    local indent="$2"
+    local level="$3"
+
+    for relation in "${inheritance_list[@]}"
+    do
+        if [[ $relation == "$class -> "* ]]
+        then
+            local derived_class="${relation#*-> }"
+            echo "${indent}$class -> $derived_class"
+            print_inheritance_chain "$derived_class" "$indent    " "$((level + 1))"
+        fi
+    done
+
+    if [[ $level -ge 3 ]]
+    then
+        has_long_chain=1
+    fi
+}
+
+check_inheritance()
+{
+    local indent=""
+
+    for relation in "${inheritance_list[@]}"
+    do
+        local base_class="${relation#*-> }"
+        local derived_class="${relation% ->*}"
+        if [[ ! " ${checked_classes[*]} " =~ " $derived_class " ]]
+        then
+            echo "Lanț de moștenire care începe cu $derived_class:"
+            print_inheritance_chain "$derived_class" "$indent" 1
+            echo ""
+            checked_classes+=("$derived_class")
+        fi
+    done
+}
+
+declare -a checked_classes
+
+has_long_chain=0
+
+check_inheritance
+
+if [[ $has_long_chain -eq 1 ]]
+then
+    echo "Există cel puțin un lanț de moștenire cu 3 sau mai multe niveluri."
+    let NOTA=NOTA+1
+fi
+
+if [[ $has_inheritance -eq 1 ]]
+then
+    echo "Proiectul conține moșteniri corecte."
+    let NOTA=NOTA+1
+else
+    echo "Proiectul nu conține moșteniri."
+fi
+
+
+echo " "
+echo " "
+
+
+# INCAPSULAREA
+
+check_sections() 
+{
+    local file="$1"
+    local class_name=""
+    local private_section_found=false
+    local public_section_found=false
+
+    class_name=$(basename "$file" .h)
+
+    if grep -q "private:" "$file"
+    then
+        private_section_found=true
+    fi
+
+    if grep -q "public:" "$file"
+    then
+        public_section_found=true
+    fi
+
+    if [[ "$private_section_found" = true ]] || [[ "$public_section_found" = true ]]
+    then
+        echo "$class_name respectă incapsularea."
+        return 0
+    else
+        echo "$class_name nu respectă incapsularea."
+        return 1
+    fi
+}
+
+total_classes=0
+encapsulation_respected=0
+
+for header_file in *.h
+do
+    if check_sections "$header_file"
+    then
+        ((encapsulation_respected++))
+    fi
+    ((total_classes++))
+done
+
+if [[ "$total_classes" -gt 0 ]]
+then
+    percentage_respected=$(( (encapsulation_respected * 100) / total_classes ))
+else
+    percentage_respected=0
+fi
+
+percentage_not_respected=$(( 100 - percentage_respected ))
+
+echo "Procentul de clase care respectă incapsularea: $percentage_respected%"
+echo "Procentul de clase care nu respectă incapsularea: $percentage_not_respected%"
+
+if [[ $percentage_respected -gt 5 ]]
+then
+let NOTA=NOTA+1
+fi
+
+echo " "
+echo " "
+
+# MOVE CONSTRUCTOR
+
+move_constructor_found=false
+
+for header_file in *.h
+do
+    if grep -q "ClassName(ClassName&&" "$header_file"
+    then
+        echo "In fișierul: $header_file - exista un move constructor."
+        move_constructor_found=true
+    fi
+done
+
+if [[ "$move_constructor_found" = true ]]
+then
+    echo "Exista putin un move constructor in proiect."
+    let NOTA=NOTA+1
+else
+    echo "Nu exista niciun move constructor in proiect."
+fi
+
+echo " "
+echo " "
+
+# CALCULARE NOTA
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+MAGENTA='\033[0;35m'
+UNDERLINE='\033[4m'
+RESET='\033[0m'
+BOLD='\033[1m'
+
+show_frame() 
+{
+    echo -e "$1"
+}
+
+frame1="Calculare nota: ."
+frame2="Calculare nota: .."
+frame3="Calculare nota: ..."
+frame4="Calculare nota: ...."
+frame5="Calculare nota: ....."
+frame6="Calculare nota: ......"
+
+frames=("$frame1" "$frame2" "$frame3" "$frame4" "$frame5" "$frame6")
+
+for i in {1..2}
+do
+    for frame in "${frames[@]}"
+    do
+        show_frame "$frame"
+        sleep 0.5
+    done
+done
+
+echo " "
+echo " "
+
+if [[ $NOTA -gt 4 ]]
+then
+echo -e "${BOLD}${UNDERLINE}${MAGENTA}FELICITARI!! In urma verificarii temei, ai obtinut nota:"
+echo -e "\xf0\x9f\x98\x8a"
+echo ""
+echo -e "${GREEN}███████████████████████████${RESET}"
+echo -e "${GREEN}██  ${RESET}       NOTA: $NOTA       ${GREEN}██${RESET}"
+echo -e "${GREEN}███████████████████████████${RESET}"
+else
+echo -e "${BOLD}${UNDERLINE}${MAGENTA}In urma verificarii temei, ai obtinut nota:"
+echo -e "\xf0\x9f\x98\xa2"
+echo ""
+echo -e "${RED}███████████████████████████${RESET}"
+echo -e "${RED}██  ${RESET}       NOTA: $NOTA       ${RED}██${RESET}"
+echo -e "${RED}███████████████████████████${RESET}"
+fi
+
 
 echo " "
 echo " "
