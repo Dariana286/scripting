@@ -31,3 +31,8 @@
 # --am verificat mostenirile si lanturile de derivare
 # --am verificat incapsularea
 # --am verificat existenta move constructorilor
+
+# Ziua7: 26.06.2024
+# --am verificat existenta SINGLETON-ului in cadrul proiectului
+# --am verificat toate functionalitatile si am aranjat codul astfel incat sa fie clar si lizibil
+# --am creat un algoritm de notare al temei prin afisarea unei note finale

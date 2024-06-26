@@ -1,5 +1,12 @@
 #!/bin/bash
 
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+MAGENTA='\033[0;35m'
+UNDERLINE='\033[4m'
+RESET='\033[0m'
+BOLD='\033[1m'
+
 NOTA=0
 
 # VERIFICARE COMPILARE SI RULARE PROGRAM
@@ -24,16 +31,16 @@ cd "$TEMA_DIR"
 echo " "
 echo " "
 
-# Compilare proiect
+# Compilare program
 g++ -o my_program sources/*.cpp -Iheaders 2> compile_errors.txt
 
 if [[ $? -ne 0 ]]
 then
     echo "Eroare: Compilarea a esuat. Verifica erorile de mai jos:"
     cat compile_errors.txt
-    NOTA=0
-    echo "NOTA"
-    echo "ATENTIE!! Tema ta nu se poate verifica deoarece are erori de compilare."
+    echo -e "${BOLD}${UNDERLINE}${RED}ATENTIE!! Tema ta nu se poate verifica deoarece are erori de compilare."
+    echo " "
+    echo " "
     exit 1
 fi
 
@@ -44,19 +51,15 @@ if [[ $? -ne 0 ]]
 then
     echo "Eroare: Programul a intampinat erori in timpul rularii. Verifica erorile de mai jos:"
     cat run_errors.txt
-    exit 1
-fi
-
-if [[ $(grep -i "warning" compile_errors.txt) ]]
-then
-    echo "Avertizare: Au existat warning-uri in timpul compilarii. Verifica warning-urile de mai jos:"
-    cat compile_errors.txt
+    echo -e "${BOLD}${UNDERLINE}${RED}ATENTIE!! Tema ta nu se poate verifica deoarece a intampinat erori in timpul rularii."
+    echo " "
+    echo " "
     exit 1
 fi
 
 echo "Succes: Programul a fost compilat si rulat fara erori sau warning-uri."
 cat run_output.txt
-let NOTA=NOTA+2
+let NOTA=NOTA+1
 
 rm compile_errors.txt run_output.txt run_errors.txt
 
@@ -67,7 +70,6 @@ echo " "
 
 cd headers
 
-# Cautare clase in headers
 nr_cls=0
 echo "Clasele definite in cadrul temei sunt:"
 for file in *.h
@@ -96,7 +98,7 @@ do
     public=`echo $inh | cut -f1 -d" "`
     result=`echo $inh | sed 's/public\s*//g'`
     echo "  Class: $class"
-        if [[ "$public" == "public" ]]
+        if [[ "$public" == "public" || "$public" == "private" ]]
         then
             echo "    Inherits from: $result"
         fi
@@ -151,9 +153,9 @@ if [[ $nr_int -ne 0 ]]
 then
 let NOTA=NOTA+1
 else
-NOTA=0
-    echo "NOTA"
-    echo "ATENTIE!! Tema ta nu se poate verifica deoarece nu contine interfete."
+    echo -e "${BOLD}${UNDERLINE}${RED}ATENTIE!! Tema ta nu se poate verifica deoarece nu contine interfete."
+    echo " "
+    echo " "
     exit 1
 fi
 
@@ -229,21 +231,20 @@ check_constructors_and_destructors()
     constructor_found=$(egrep "($class_name\(|$class_name\s*\()" "$file")
     destructor_found=$(egrep "(~$class_name\s*\()" "$file")
 
-    # Increment the total class counter
-    total_classes=$((total_classes + 1))
+    let total_classes=total_classes+1
 
     if [[ ! -z $constructor_found ]]
     then
-        classes_with_constructors=$((classes_with_constructors + 1))
+        let classes_with_constructors=classes_with_constructors+1
     else
-        echo "Warning: Clasa $class_name din fisierul $file nu are constructori."
+        echo "Clasa $class_name din fisierul $file nu are constructori."
     fi
 
     if [[ ! -z $destructor_found ]]
     then
-        classes_with_destructors=$((classes_with_destructors + 1))
+        let classes_with_destructors=classes_with_destructors+1
     else
-        echo "Warning: Clasa $class_name din fisierul $file nu are destructori."
+        echo "Clasa $class_name din fisierul $file nu are destructori."
     fi
 }
 
@@ -271,12 +272,7 @@ then
     echo "Clase care contin destructori: $classes_with_destructors ($destructor_percentage%)"
 fi
 
-if [[ $(echo "$constructor_percentage > 50.00" | bc) -eq 1 ]]
-then
-    let NOTA=NOTA+1
-fi
-
-if [[ $(echo "$destructor_percentage > 50.00" | bc) -eq 1 ]]
+if [[ $(echo "$constructor_percentage > 50.00" | bc) -eq 1 && $(echo "$destructor_percentage > 50.00" | bc) -eq 1 ]]
 then
     let NOTA=NOTA+1
 fi
@@ -327,6 +323,10 @@ done
 if [[ $found -eq 1 ]]
 then
 echo "Există posibilitatea de plagiat."
+echo -e "${BOLD}${UNDERLINE}${RED}ATENTIE!! Tema ta nu poate fi verificata deoarece exista posibilitatea de plagiat."
+echo " "
+echo " "
+exit 1
 else
 echo "Probabil nu există plagiat."
 let NOTA=NOTA+1
@@ -335,11 +335,9 @@ fi
 echo " "
 echo " "
 
-
 # MOSTENIRI SI LANTURI DE DERIVARE
 
 cd ../headers
-
 
 extract_inheritance() 
 {
@@ -368,7 +366,8 @@ has_inheritance=0
 for header_file in *.h
 do
     result=$(extract_inheritance "$header_file")
-    if [[ -n $result ]]; then
+    if [[ -n $result ]]
+    then
         inheritance_list+=("$result")
         has_inheritance=1
     fi
@@ -434,10 +433,8 @@ else
     echo "Proiectul nu conține moșteniri."
 fi
 
-
 echo " "
 echo " "
-
 
 # INCAPSULAREA
 
@@ -477,9 +474,9 @@ for header_file in *.h
 do
     if check_sections "$header_file"
     then
-        ((encapsulation_respected++))
+        let encapsulation_respected=encapsulation_respected+1
     fi
-    ((total_classes++))
+    let total_classes=total_classes+1
 done
 
 if [[ "$total_classes" -gt 0 ]]
@@ -506,18 +503,19 @@ echo " "
 
 move_constructor_found=false
 
-for header_file in *.h
+for file in *.h
 do
-    if grep -q "ClassName(ClassName&&" "$header_file"
+    class_name=`cat $file | egrep "^class" | cut -f2 -d" "`
+    if grep -q "$class_name($class_name&&" "$file"
     then
-        echo "In fișierul: $header_file - exista un move constructor."
+        echo "In fișierul: $file - exista un move constructor."
         move_constructor_found=true
     fi
 done
 
 if [[ "$move_constructor_found" = true ]]
 then
-    echo "Exista putin un move constructor in proiect."
+    echo "Exista cel putin un move constructor in proiect."
     let NOTA=NOTA+1
 else
     echo "Nu exista niciun move constructor in proiect."
@@ -526,14 +524,50 @@ fi
 echo " "
 echo " "
 
-# CALCULARE NOTA
+# SINGLETON
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-MAGENTA='\033[0;35m'
-UNDERLINE='\033[4m'
-RESET='\033[0m'
-BOLD='\033[1m'
+found=0
+for file in *.h
+do
+    class_name=`cat $file | egrep "^class" | cut -f2 -d" "`
+    while read line
+    do
+       if [[ $line == "private:" ]]
+       then
+           continue
+       fi
+       
+       cstr1=`echo $line | egrep "$class_name\(\);"`
+       cstr2=`echo $line | egrep "$class_name\(.*\);"`
+       cstr3=`echo $line | egrep "~$class_name\(\);"`
+       
+       if [[ -n $cstr1 && -n $cstr2 && -n $cstr3 ]]
+       then
+           echo "Clasa" $class_name "este SINGLETON."
+           found=1
+       fi
+       
+       if [[ $line == "public:" ]]
+       then
+           break
+       fi
+    
+    done < $file
+
+done
+
+if [[ $found -eq 1 ]]
+then
+    echo "Exista SINGLETON implementat in cadrul proiectului."
+    let NOTA=NOTA+1
+else
+    echo "Nu exista SINGLETON implementat in cadrul proiectului."
+fi
+
+echo " "
+echo " "
+
+# CALCULARE NOTA
 
 show_frame() 
 {
@@ -577,7 +611,6 @@ echo -e "${RED}█████████████████████�
 echo -e "${RED}██  ${RESET}       NOTA: $NOTA       ${RED}██${RESET}"
 echo -e "${RED}███████████████████████████${RESET}"
 fi
-
-
+  
 echo " "
 echo " "

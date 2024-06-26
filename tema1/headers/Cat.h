@@ -1,12 +1,12 @@
 #pragma once
 #include"AAnimalDomestic.h"
-#include"Dari.h"
 
-class Cat : public AAnimalDomestic, public Dari
+class Cat : public AAnimalDomestic
 {
 public:
 	Cat();
 	Cat(std::string name);
+	Cat(Cat&& other);
 
 	void makeSound() const override;
 };
